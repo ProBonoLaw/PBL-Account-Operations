@@ -1,6 +1,10 @@
 {
   "name": "Account Operations",
   "image": "mcr.microsoft.com/devcontainers/dotnet:2-10.0-noble",
+  "runArgs": [
+    "--env-file",
+    "${localWorkspaceFolder}/.devcontainer/.env"
+  ],
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/azure-cli:1": {}
