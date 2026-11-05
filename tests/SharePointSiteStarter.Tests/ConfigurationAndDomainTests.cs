@@ -128,13 +128,26 @@ public sealed class ConfigurationAndDomainTests
     {
         var homePage = CreatePage("Home.aspx");
         var welcomeArticle = CreatePage("Welcome to ProBonoLaw.aspx");
+        var legacyArticle = CreatePage("Former Welcome.aspx");
         var unrelatedPage = CreatePage("Project Overview.aspx");
 
         var starterPages = SharePointSiteProvisioner.GetStarterOwnedPages(
-            [homePage.Object, welcomeArticle.Object, unrelatedPage.Object]);
+            [homePage.Object, welcomeArticle.Object, legacyArticle.Object, unrelatedPage.Object],
+            ["Former Welcome.aspx"]);
 
-        Assert.Equal(["Home.aspx", "Welcome to ProBonoLaw.aspx"],
+        Assert.Equal(["Home.aspx", "Welcome to ProBonoLaw.aspx", "Former Welcome.aspx"],
             starterPages.Select(page => page.Name));
+    }
+
+    [Fact]
+    public void LegacyWelcomeEventTitleIsSelectedForCleanup()
+    {
+        Assert.True(SharePointSiteProvisioner.IsStarterWelcomeEvent(
+            "Former Onboarding", ["Former Onboarding"]));
+        Assert.True(SharePointSiteProvisioner.IsStarterWelcomeEvent(
+            "Onboarded to ProBonoLaw", ["Former Onboarding"]));
+        Assert.False(SharePointSiteProvisioner.IsStarterWelcomeEvent(
+            "Case Hearing", ["Former Onboarding"]));
     }
 
     [Fact]

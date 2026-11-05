@@ -25,4 +25,8 @@ public sealed record SharePointSiteStarterOptions
     public string AdminApiKey { get; init; } = "";
 
     public string[] DocumentsLibraryFolders { get; init; } = [];
+
+    public string[] LegacyWelcomePageNames { get; init; } = [];
+
+    public string[] LegacyWelcomeEventTitles { get; init; } = [];
 }

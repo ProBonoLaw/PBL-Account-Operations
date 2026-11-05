@@ -28,6 +28,8 @@ Set tenant specific values as GitHub environment variables in the **private depl
 | `SHAREPOINT_CERTIFICATE_VAULT_URI` | `SHAREPOINT_CERTIFICATE_VAULT_URI` and `SharePointSiteStarter:CertificateKeyVaultUri` | Certificate vault URL |
 | `SHAREPOINT_CERTIFICATE_SECRET_NAME` | `SHAREPOINT_CERTIFICATE_SECRET_NAME` and `SharePointSiteStarter:CertificateSecretName` | Certificate secret name |
 | `SHAREPOINT_SITE_STARTER_URL` | `SHAREPOINT_SITE_STARTER_URL` | Internal site starter URL |
+| `SHAREPOINT_LEGACY_WELCOME_PAGE_NAMES_JSON` | `SharePointSiteStarter:LegacyWelcomePageNames` | Optional JSON array of former starter page filenames to remove during reprovisioning |
+| `SHAREPOINT_LEGACY_WELCOME_EVENT_TITLES_JSON` | `SharePointSiteStarter:LegacyWelcomeEventTitles` | Optional JSON array of former starter event titles to remove during reprovisioning |
 
 Keep the certificate, Graph secret, API keys, and connection strings in Key Vault or GitHub secrets. GitHub variables are visible to workflows and are not a credential store. The site starter includes a generic ProBonoLaw image and wording; no tenant logo is embedded.
 
