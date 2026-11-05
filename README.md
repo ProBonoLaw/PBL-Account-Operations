@@ -10,6 +10,10 @@ The repository contains application source, tests, and generic infrastructure te
 
 ## Build
 
+In VS Code, run **Dev Containers: Reopen in Container** to use the included
+.NET 10 environment with Azure CLI, GitHub CLI, and the C# extension. The
+container configuration works without a local `.env` file.
+
 ```sh
 dotnet restore AccountOperations.slnx
 dotnet test AccountOperations.slnx --configuration Release --no-restore
