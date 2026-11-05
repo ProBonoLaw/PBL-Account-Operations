@@ -52,9 +52,9 @@ The account worker needs `ACCOUNT_EMAIL_DOMAIN` from the private deployment conf
 Create code branches and pull requests in this public repository. Public `main`
 requires a pull request and passing CI before merging. Every five minutes, a workflow in the
 private repository checks for changes to public `main`. It imports `src`,
-`tests`, `infra`, the solution file, the Dockerfiles, and the Dev Container
-configuration, feature lock, and empty
-environment template. Filled local `.env` files are ignored in both repositories.
+`tests`, `infra`, the solution file, the Dockerfiles, the Docker ignore rules,
+and the Dev Container configuration, feature lock, and empty environment
+template. Filled local `.env` files are ignored in both repositories.
 The private import PR
 merges after its required checks pass, then starts the AKS Test deployment.
 Production deployment remains manual in the private repository. The private
