@@ -10,6 +10,18 @@ The repository contains application source, tests, and generic infrastructure te
 
 ## Build
 
+Before opening a fresh clone in Dev Containers, create the local environment file:
+
+```sh
+cp -n .devcontainer/.env.example .devcontainer/.env
+chmod 600 .devcontainer/.env
+```
+
+Fill in the values in `.devcontainer/.env`, then run **Dev Containers: Reopen in
+Container** in VS Code. The .NET 10 container includes Azure CLI, GitHub CLI,
+and the C# extension, and loads the local `.env`. The filled file is ignored by
+Git; the empty `.env.example` is shared in the repository.
+
 ```sh
 dotnet restore AccountOperations.slnx
 dotnet test AccountOperations.slnx --configuration Release --no-restore
@@ -39,8 +51,11 @@ The account worker needs `ACCOUNT_EMAIL_DOMAIN` from the private deployment conf
 
 Create code branches and pull requests in this public repository. Public `main`
 requires a pull request and passing CI before merging. Every five minutes, a workflow in the
-private repository checks for changes to public `main`. It imports only `src`,
-`tests`, `infra`, the solution file, and the Dockerfiles. The private import PR
+private repository checks for changes to public `main`. It imports `src`,
+`tests`, `infra`, the solution file, the Dockerfiles, the Docker ignore rules,
+and the Dev Container configuration, feature lock, and empty environment
+template. Filled local `.env` files are ignored in both repositories.
+The private import PR
 merges after its required checks pass, then starts the AKS Test deployment.
 Production deployment remains manual in the private repository. The private
 repository owns its deployment scripts, infrastructure names, and Azure credentials.
