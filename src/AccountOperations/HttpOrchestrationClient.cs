@@ -53,7 +53,7 @@ internal sealed class HttpOrchestrationClient(
         while (true)
         {
             if (delay > TimeSpan.Zero) await Task.Delay(delay, token);
-            using var status = await SendResponseAsync(HttpMethod.Get, statusUrl, null, null,
+            using var status = await SendResponseAsync(HttpMethod.Get, statusUrl, null, headers,
                 token, retryCount, retryDelay ?? TimeSpan.FromSeconds(2));
             status.EnsureSuccessStatusCode();
             var result = await ReadJsonAsync(status, token);

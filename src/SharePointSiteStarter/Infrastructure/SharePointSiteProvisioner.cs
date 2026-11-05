@@ -50,7 +50,7 @@ public sealed class SharePointSiteProvisioner(
         await CreateDocumentsFoldersAsync(context, cancellationToken);
 
         var existingPages = await context.Web.GetPagesAsync();
-        var starterPages = GetStarterOwnedPages(existingPages).ToArray();
+        var starterPages = GetStarterOwnedPages(existingPages, settings.LegacyWelcomePageNames).ToArray();
         logger.LogInformation("Removing {ExistingStarterPageCount} existing starter-owned pages for account {AccountId}",
             starterPages.Length, request.AccountId);
         foreach (var page in starterPages)
@@ -87,8 +87,20 @@ public sealed class SharePointSiteProvisioner(
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
-    internal static IEnumerable<IPage> GetStarterOwnedPages(IEnumerable<IPage> pages) =>
-        pages.Where(page => StarterOwnedPageNames.Contains(page.Name));
+    internal static IEnumerable<IPage> GetStarterOwnedPages(IEnumerable<IPage> pages,
+        IEnumerable<string>? legacyPageNames = null)
+    {
+        var names = new HashSet<string>(StarterOwnedPageNames, StringComparer.OrdinalIgnoreCase);
+        foreach (var name in legacyPageNames ?? [])
+            if (!string.IsNullOrWhiteSpace(name)) names.Add(name);
+        return pages.Where(page => names.Contains(page.Name));
+    }
+
+    internal static bool IsStarterWelcomeEvent(string? title,
+        IEnumerable<string>? legacyEventTitles = null) =>
+        string.Equals(title, "Onboarded to ProBonoLaw", StringComparison.OrdinalIgnoreCase) ||
+        (legacyEventTitles ?? []).Any(legacy =>
+            string.Equals(title, legacy, StringComparison.OrdinalIgnoreCase));
 
     internal static async Task EnsureFoldersAsync(IFolder rootFolder, IEnumerable<string> folders,
         CancellationToken cancellationToken = default)
@@ -219,7 +231,8 @@ public sealed class SharePointSiteProvisioner(
         var eventList = await context.Web.Lists.GetByTitleAsync("Events");
         await eventList.Items.LoadAsync(item => item.Title);
         var oldWelcomeEvents = eventList.Items.AsRequested()
-            .Where(item => item.Title == "Onboarded to ProBonoLaw").ToArray();
+            .Where(item => IsStarterWelcomeEvent(item.Title, settings.LegacyWelcomeEventTitles))
+            .ToArray();
         logger.LogInformation("Removing {ExistingWelcomeEventCount} prior welcome events before creating the starter event",
             oldWelcomeEvents.Length);
         foreach (var oldEvent in oldWelcomeEvents)

@@ -28,6 +28,8 @@ Set tenant specific values as GitHub environment variables in the **private depl
 | `SHAREPOINT_CERTIFICATE_VAULT_URI` | `SHAREPOINT_CERTIFICATE_VAULT_URI` and `SharePointSiteStarter:CertificateKeyVaultUri` | Certificate vault URL |
 | `SHAREPOINT_CERTIFICATE_SECRET_NAME` | `SHAREPOINT_CERTIFICATE_SECRET_NAME` and `SharePointSiteStarter:CertificateSecretName` | Certificate secret name |
 | `SHAREPOINT_SITE_STARTER_URL` | `SHAREPOINT_SITE_STARTER_URL` | Internal site starter URL |
+| `SHAREPOINT_LEGACY_WELCOME_PAGE_NAMES_JSON` | `SharePointSiteStarter:LegacyWelcomePageNames` | Optional JSON array of former starter page filenames to remove during reprovisioning |
+| `SHAREPOINT_LEGACY_WELCOME_EVENT_TITLES_JSON` | `SharePointSiteStarter:LegacyWelcomeEventTitles` | Optional JSON array of former starter event titles to remove during reprovisioning |
 
 Keep the certificate, Graph secret, API keys, and connection strings in Key Vault or GitHub secrets. GitHub variables are visible to workflows and are not a credential store. The site starter includes a generic ProBonoLaw image and wording; no tenant logo is embedded.
 
@@ -35,6 +37,12 @@ The account worker needs `ACCOUNT_EMAIL_DOMAIN` from the private deployment conf
 
 ## Public to private flow
 
-Changes to public `main` are built and tested here. A scheduled workflow in the private repository imports only `src`, `tests`, `infra`, the solution file, and the Dockerfiles from `ProBonoLaw/PBL-Account-Operations`. It opens a private pull request for review. The private repository owns its deployment scripts, infrastructure names, and Azure credentials. Protect both `main` branches and require CI and review before merging.
+Create code branches and pull requests in this public repository. Public `main`
+requires a pull request and passing CI before merging. Every five minutes, a workflow in the
+private repository checks for changes to public `main`. It imports only `src`,
+`tests`, `infra`, the solution file, and the Dockerfiles. The private import PR
+merges after its required checks pass, then starts the AKS Test deployment.
+Production deployment remains manual in the private repository. The private
+repository owns its deployment scripts, infrastructure names, and Azure credentials.
 
 The public repository was prepared from a clean source snapshot. Do not import Git history from the original private repository.

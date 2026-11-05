@@ -33,6 +33,29 @@ public sealed class HttpOrchestrationClientTests
     }
 
     [Fact]
+    public async Task ForwardsFunctionKeyHeaderWhenStatusUrlHasNoEmbeddedKey()
+    {
+        var statusWithoutKey = new Uri("https://example.test/status");
+        using var handler = new ScriptedHandler(
+            Json(HttpStatusCode.Accepted,
+                $$"""{"statusQueryGetUri":"{{statusWithoutKey}}"}"""),
+            Json(HttpStatusCode.OK, """{"runtimeStatus":"Completed"}"""));
+        using var http = new HttpClient(handler);
+        var client = new HttpOrchestrationClient(http, options: new()
+        {
+            PollingInterval = TimeSpan.Zero,
+            Timeout = TimeSpan.FromSeconds(5)
+        });
+
+        await client.SendAndWaitForCompletionAsync(HttpMethod.Post, Start, new { },
+            "example", new Dictionary<string, string> { ["x-functions-key"] = "test-key" },
+            CancellationToken.None);
+
+        Assert.Equal(["test-key", "test-key"], handler.FunctionKeys);
+        Assert.Equal(statusWithoutKey, handler.Uris[1]);
+    }
+
+    [Fact]
     public async Task RejectsCrossOriginStatusUrl()
     {
         using var handler = new ScriptedHandler(Json(HttpStatusCode.Accepted,
@@ -72,12 +95,15 @@ public sealed class HttpOrchestrationClientTests
         private readonly Queue<HttpResponseMessage> queue = new(responses);
         public List<HttpMethod> Methods { get; } = [];
         public List<Uri> Uris { get; } = [];
+        public List<string?> FunctionKeys { get; } = [];
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             Methods.Add(request.Method);
             Uris.Add(request.RequestUri!);
+            FunctionKeys.Add(request.Headers.TryGetValues("x-functions-key", out var keys)
+                ? keys.Single() : null);
             return Task.FromResult(queue.Dequeue());
         }
     }

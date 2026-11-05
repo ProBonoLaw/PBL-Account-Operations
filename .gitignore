@@ -3,4 +3,5 @@
 **/obj/
 TestResults/
 .env
+/config.toml
 *.user
