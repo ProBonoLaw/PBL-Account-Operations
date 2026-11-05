@@ -1,0 +1,311 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.47.16.16243",
+      "templateHash": "2966324943512128054"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "searchServiceName": {
+      "type": "string"
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "basic"
+    },
+    "replicaCount": {
+      "type": "int",
+      "defaultValue": 1
+    },
+    "partitionCount": {
+      "type": "int",
+      "defaultValue": 1
+    },
+    "existingLaVnetResourceGroupName": {
+      "type": "string"
+    },
+    "existingLaVnetName": {
+      "type": "string"
+    },
+    "newSubnetName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-pe-subnet', parameters('searchServiceName'))]"
+    },
+    "newLaSubnetPrefix": {
+      "type": "string"
+    },
+    "indexDataReaderPrincipalIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "metadata": {
+        "description": "Object (principal) ID for service principal that can query index content (read-only)."
+      }
+    },
+    "indexDataReaderWriterPrincipalIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "metadata": {
+        "description": "Object (principal) ID for service principal that can manage index definitions + read/write index content."
+      }
+    },
+    "indexAdminPrincipalIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "metadata": {
+        "description": "Object (principal) ID for service principal that can manage search service and index definitions"
+      }
+    },
+    "privateDnsZoneLaResourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group containing the existing Private DNS zone privatelink.search.windows.net that is linked to the client VNet."
+      }
+    },
+    "privateDnsZoneName": {
+      "type": "string",
+      "defaultValue": "privatelink.search.windows.net",
+      "metadata": {
+        "description": "Private DNS zone name for Search private endpoints."
+      }
+    },
+    "laLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Location of the Data Ingestion Logic Apps VNet and Private Endpoint"
+      }
+    },
+    "principalType": {
+      "type": "string",
+      "defaultValue": "ServicePrincipal",
+      "allowedValues": [
+        "ServicePrincipal",
+        "User",
+        "Group"
+      ]
+    }
+  },
+  "variables": {
+    "roleDefSearchServiceContributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')]",
+    "roleDefSearchIndexDataContributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')]",
+    "roleDefSearchIndexDataReader": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')]"
+  },
+  "resources": {
+    "privateDnsZoneLa": {
+      "existing": true,
+      "type": "Microsoft.Network/privateDnsZones",
+      "apiVersion": "2024-06-01",
+      "resourceGroup": "[parameters('privateDnsZoneLaResourceGroupName')]",
+      "name": "[parameters('privateDnsZoneName')]"
+    },
+    "search": {
+      "type": "Microsoft.Search/searchServices",
+      "apiVersion": "2025-05-01",
+      "name": "[parameters('searchServiceName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('skuName')]"
+      },
+      "properties": {
+        "replicaCount": "[parameters('replicaCount')]",
+        "partitionCount": "[parameters('partitionCount')]",
+        "publicNetworkAccess": "Disabled",
+        "disableLocalAuth": true
+      }
+    },
+    "peLa": {
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2025-01-01",
+      "name": "[format('{0}-pe-la', parameters('searchServiceName'))]",
+      "location": "[parameters('laLocation')]",
+      "tags": {
+        "Environment": "Development"
+      },
+      "properties": {
+        "subnet": {
+          "id": "[reference('subnetLaMod').outputs.subnetId.value]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "[format('{0}-pe-la/default', parameters('searchServiceName'))]",
+            "properties": {
+              "privateLinkServiceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]",
+              "groupIds": [
+                "searchService"
+              ],
+              "privateLinkServiceConnectionState": {
+                "status": "Approved",
+                "description": "Auto-approved",
+                "actionsRequired": "None"
+              }
+            }
+          }
+        ],
+        "customNetworkInterfaceName": "[format('{0}-la-nic', parameters('searchServiceName'))]",
+        "manualPrivateLinkServiceConnections": [],
+        "ipConfigurations": [],
+        "customDnsConfigs": []
+      },
+      "dependsOn": [
+        "search",
+        "subnetLaMod"
+      ]
+    },
+    "peZoneGroupLa": {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2025-01-01",
+      "name": "[format('{0}/{1}', format('{0}-pe-la', parameters('searchServiceName')), format('default-{0}', uniqueString(resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe-la', parameters('searchServiceName'))))))]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "privatelink-search-windows-net",
+            "properties": {
+              "privateDnsZoneId": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('privateDnsZoneLaResourceGroupName')), 'Microsoft.Network/privateDnsZones', parameters('privateDnsZoneName'))]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "peLa"
+      ]
+    },
+    "raIndexDataReader": {
+      "copy": {
+        "name": "raIndexDataReader",
+        "count": "[length(parameters('indexDataReaderPrincipalIds'))]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]",
+      "name": "[guid(resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')), parameters('indexDataReaderPrincipalIds')[copyIndex()], variables('roleDefSearchIndexDataReader'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('roleDefSearchIndexDataReader')]",
+        "principalId": "[parameters('indexDataReaderPrincipalIds')[copyIndex()]]",
+        "principalType": "[parameters('principalType')]"
+      },
+      "dependsOn": [
+        "search"
+      ]
+    },
+    "raIndexAdminManage": {
+      "copy": {
+        "name": "raIndexAdminManage",
+        "count": "[length(parameters('indexAdminPrincipalIds'))]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]",
+      "name": "[guid(resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')), parameters('indexAdminPrincipalIds')[copyIndex()], variables('roleDefSearchServiceContributor'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('roleDefSearchServiceContributor')]",
+        "principalId": "[parameters('indexAdminPrincipalIds')[copyIndex()]]",
+        "principalType": "[parameters('principalType')]"
+      },
+      "dependsOn": [
+        "search"
+      ]
+    },
+    "raIndexAdminData": {
+      "copy": {
+        "name": "raIndexAdminData",
+        "count": "[length(parameters('indexDataReaderWriterPrincipalIds'))]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]",
+      "name": "[guid(resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')), parameters('indexDataReaderWriterPrincipalIds')[copyIndex()], variables('roleDefSearchIndexDataContributor'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('roleDefSearchIndexDataContributor')]",
+        "principalId": "[parameters('indexDataReaderWriterPrincipalIds')[copyIndex()]]",
+        "principalType": "[parameters('principalType')]"
+      },
+      "dependsOn": [
+        "search"
+      ]
+    },
+    "subnetLaMod": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "createSearchPeSubnetLa",
+      "resourceGroup": "[parameters('existingLaVnetResourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "existingVnetName": {
+            "value": "[parameters('existingLaVnetName')]"
+          },
+          "newSubnetName": {
+            "value": "[parameters('newSubnetName')]"
+          },
+          "newSubnetPrefix": {
+            "value": "[parameters('newLaSubnetPrefix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.47.16.16243",
+              "templateHash": "9321502502401535080"
+            }
+          },
+          "parameters": {
+            "existingVnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the existing VNet in this resource group."
+              }
+            },
+            "newSubnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the new subnet."
+              }
+            },
+            "newSubnetPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "CIDR prefix for the new subnet."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2025-01-01",
+              "name": "[format('{0}/{1}', parameters('existingVnetName'), parameters('newSubnetName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('newSubnetPrefix')]",
+                "privateEndpointNetworkPolicies": "Disabled"
+              }
+            }
+          ],
+          "outputs": {
+            "subnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('newSubnetName'))]"
+            }
+          }
+        }
+      }
+    }
+  }
+}

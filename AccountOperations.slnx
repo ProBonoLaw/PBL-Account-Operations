@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/AccountOperations/AccountOperations.csproj" />
+  <Project Path="src/ResourceManager/ResourceManager.csproj" />
+  <Project Path="src/SharePointSiteStarter/SharePointSiteStarter.csproj" />
+  <Project Path="tests/AccountOperations.Tests/AccountOperations.Tests.csproj" />
+  <Project Path="tests/ResourceManager.Tests/ResourceManager.Tests.csproj" />
+  <Project Path="tests/SharePointSiteStarter.Tests/SharePointSiteStarter.Tests.csproj" />
+</Solution>
