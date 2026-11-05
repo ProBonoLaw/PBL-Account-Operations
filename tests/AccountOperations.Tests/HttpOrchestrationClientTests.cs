@@ -65,8 +65,10 @@ public sealed class HttpOrchestrationClientTests
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             client.SendAndWaitForCompletionAsync(HttpMethod.Post, Start, new { },
-                "example", null, CancellationToken.None));
+                "example", new Dictionary<string, string> { ["x-functions-key"] = "test-key" },
+                CancellationToken.None));
         Assert.Single(handler.Uris);
+        Assert.Equal(["test-key"], handler.FunctionKeys);
     }
 
     [Fact]
