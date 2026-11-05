@@ -35,6 +35,12 @@ The account worker needs `ACCOUNT_EMAIL_DOMAIN` from the private deployment conf
 
 ## Public to private flow
 
-Changes to public `main` are built and tested here. A scheduled workflow in the private repository imports only `src`, `tests`, `infra`, the solution file, and the Dockerfiles from `ProBonoLaw/PBL-Account-Operations`. It opens a private pull request for review. The private repository owns its deployment scripts, infrastructure names, and Azure credentials. Protect both `main` branches and require CI and review before merging.
+Create code branches and pull requests in this public repository. Public `main`
+requires CI and review before merging. Every five minutes, a workflow in the
+private repository checks for changes to public `main`. It imports only `src`,
+`tests`, `infra`, the solution file, and the Dockerfiles. The private import PR
+merges after its required checks pass, then starts the AKS Test deployment.
+Production deployment remains manual in the private repository. The private
+repository owns its deployment scripts, infrastructure names, and Azure credentials.
 
 The public repository was prepared from a clean source snapshot. Do not import Git history from the original private repository.
